@@ -16,7 +16,9 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
@@ -85,9 +87,11 @@ public class XService {
         System.out.println("\nRetrieving latest " + numberOfPosts + " posts for '" + query + "'...");
 
         String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
-        String fields = "id,text,created_at";
-        String searchUrl = String.format("%s/tweets/search/recent?query=%s&tweet.fields=%s&max_results=%d",
-                API_URL, encodedQuery, fields, numberOfPosts);
+        String fields = "id,text,created_at,author_id";
+        String expansions = "author_id";
+        String userFields = "username";
+        String searchUrl = String.format("%s/tweets/search/recent?query=%s&tweet.fields=%s&expansions=%s&user.fields=%s&max_results=%d",
+                API_URL, encodedQuery, fields, expansions, userFields, numberOfPosts);
 
         JsonObject response = sendRequest(searchUrl);
 
@@ -96,7 +100,26 @@ public class XService {
         System.out.println(gson.toJson(response));
 
         if (response != null && response.has("data")) {
-            DatabaseService.saveXPosts(response.getAsJsonArray("data"), query);
+            JsonArray posts = response.getAsJsonArray("data");
+            JsonObject includes = response.getAsJsonObject("includes");
+            Map<String, String> users = new HashMap<>();
+            if (includes != null && includes.has("users")) {
+                for (JsonElement userElement : includes.getAsJsonArray("users")) {
+                    JsonObject user = userElement.getAsJsonObject();
+                    users.put(user.get("id").getAsString(), user.get("username").getAsString());
+                }
+            }
+
+            for (JsonElement postElement : posts) {
+                JsonObject post = postElement.getAsJsonObject();
+                String authorId = post.get("author_id").getAsString();
+                String username = users.get(authorId);
+                if (username != null) {
+                    String permalink = "https://twitter.com/" + username + "/status/" + post.get("id").getAsString();
+                    post.addProperty("permalink", permalink);
+                }
+            }
+            DatabaseService.saveXPosts(posts, query);
         }
     }
 

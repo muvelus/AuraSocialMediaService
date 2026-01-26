@@ -9,6 +9,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Properties;
@@ -80,12 +81,10 @@ public class DatabaseService {
         String dbUser = dbProperties.getProperty("db.user", "postgres");
         String dbPassword = dbProperties.getProperty("db.password", "postgres");
 
-        String sql = "INSERT INTO x_posts (id, text, created_at, keyword) VALUES (?, ?, ?, ?) ON CONFLICT (id) DO NOTHING";
+        String sql = "INSERT INTO x_posts (id, text, created_at, keyword, permalink) VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING";
 
         try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 
             for (JsonElement postElement : posts) {
                 JsonObject post = postElement.getAsJsonObject();
@@ -94,9 +93,10 @@ public class DatabaseService {
                 pstmt.setString(2, post.has("text") ? post.get("text").getAsString() : null);
                 
                 String timestampString = post.get("created_at").getAsString();
-                ZonedDateTime zonedDateTime = ZonedDateTime.parse(timestampString, formatter);
-                pstmt.setTimestamp(3, Timestamp.from(zonedDateTime.toInstant()));
+                Instant instant = Instant.parse(timestampString);
+                pstmt.setTimestamp(3, Timestamp.from(instant));
                 pstmt.setString(4, keyword);
+                pstmt.setString(5, post.has("permalink") ? post.get("permalink").getAsString() : null);
 
                 pstmt.addBatch();
             }
