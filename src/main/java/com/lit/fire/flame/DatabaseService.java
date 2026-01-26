@@ -38,7 +38,7 @@ public class DatabaseService {
         String dbUser = dbProperties.getProperty("db.user", "postgres");
         String dbPassword = dbProperties.getProperty("db.password", "postgres");
 
-        String sql = "INSERT INTO instagram_posts (id, caption, media_type, media_url, permalink, timestamp, keyword) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING";
+        String sql = "INSERT INTO instagram_posts (id, text, media_type, media_url, permalink, timestamp, keyword) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING";
 
         try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
