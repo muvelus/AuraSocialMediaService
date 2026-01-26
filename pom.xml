@@ -1,0 +1,102 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <groupId>com.lit.fire.flame</groupId>
+  <artifactId>TwitterWrapper</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <packaging>jar</packaging>
+
+  <name>TwitterWrapper</name>
+  <url>http://maven.apache.org</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+
+  <repositories>
+    <repository>
+      <id>jcenter</id>
+      <url>https://jcenter.bintray.com/</url>
+    </repository>
+  </repositories>
+
+
+  <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>3.8.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.twitter4j</groupId>
+      <artifactId>twitter4j-core</artifactId>
+      <version>4.1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.jreddit</groupId>
+      <artifactId>jreddit</artifactId>
+      <version>1.0.3</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.10.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.postgresql</groupId>
+      <artifactId>postgresql</artifactId>
+      <version>42.7.1</version>
+    </dependency>
+<!--    <dependency>-->
+<!--      <groupId>com.google.apis</groupId>-->
+<!--      <artifactId>google-api-services-youtube</artifactId>-->
+<!--      <version>v3-rev222-1.25.0</version>-->
+<!--    </dependency>-->
+<!--    <dependency>-->
+<!--      <groupId>com.google.api-client</groupId>-->
+<!--      <artifactId>google-api-client</artifactId>-->
+<!--      <version>1.25.0</version>-->
+<!--    </dependency>-->
+    <dependency>
+      <groupId>com.google.apis</groupId>
+      <artifactId>google-api-services-youtube</artifactId>
+      <version>v3-rev222-1.25.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.api-client</groupId>
+      <artifactId>google-api-client</artifactId>
+      <version>1.25.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.api-client</groupId>
+      <artifactId>google-api-client-gson</artifactId>
+      <version>1.25.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-crypto</artifactId>
+      <version>6.5.5</version>
+    </dependency>
+    <!-- Source: https://mvnrepository.com/artifact/net.dean.jraw/moshi-deeply-nested -->
+<!--      <dependency>-->
+<!--        <groupId>net.dean.jraw</groupId>-->
+<!--        <artifactId>JRAW</artifactId>-->
+<!--        <version>1.1.0</version>-->
+<!--      </dependency>-->
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>21</source>
+          <target>21</target>
+          <compilerArgs>--enable-preview</compilerArgs>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>
