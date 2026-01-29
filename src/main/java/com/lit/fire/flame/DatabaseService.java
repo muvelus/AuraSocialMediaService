@@ -38,7 +38,7 @@ public class DatabaseService {
         String dbUser = dbProperties.getProperty("db.user", "postgres");
         String dbPassword = dbProperties.getProperty("db.password", "postgres");
 
-        String sql = "INSERT INTO instagram_posts (id, text, media_type, media_url, permalink, timestamp, keyword) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING";
+        String sql = "INSERT INTO instagram_posts (id, text, media_type, media_url, permalink, timestamp, keyword, author, like_count, comments_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING";
 
         try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -58,6 +58,9 @@ public class DatabaseService {
                 ZonedDateTime zonedDateTime = ZonedDateTime.parse(timestampString, formatter);
                 pstmt.setTimestamp(6, Timestamp.from(zonedDateTime.toInstant()));
                 pstmt.setString(7, keyword);
+                pstmt.setString(8, post.has("username") ? post.get("username").getAsString() : null);
+                pstmt.setInt(9, post.has("like_count") ? post.get("like_count").getAsInt() : 0);
+                pstmt.setInt(10, post.has("comments_count") ? post.get("comments_count").getAsInt() : 0);
 
                 pstmt.addBatch();
             }
@@ -81,7 +84,7 @@ public class DatabaseService {
         String dbUser = dbProperties.getProperty("db.user", "postgres");
         String dbPassword = dbProperties.getProperty("db.password", "postgres");
 
-        String sql = "INSERT INTO x_posts (id, text, created_at, keyword, permalink) VALUES (?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING";
+        String sql = "INSERT INTO x_posts (id, text, created_at, keyword, permalink, author, likes_count, comment_count) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING";
 
         try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -97,12 +100,57 @@ public class DatabaseService {
                 pstmt.setTimestamp(3, Timestamp.from(instant));
                 pstmt.setString(4, keyword);
                 pstmt.setString(5, post.has("permalink") ? post.get("permalink").getAsString() : null);
+                pstmt.setString(6, post.has("author") ? post.get("author").getAsString() : null);
+                pstmt.setInt(7, post.has("likes_count") ? post.get("likes_count").getAsInt() : 0);
+                pstmt.setInt(8, post.has("comment_count") ? post.get("comment_count").getAsInt() : 0);
 
                 pstmt.addBatch();
             }
 
             pstmt.executeBatch();
             System.out.println("Successfully saved " + posts.size() + " posts to the database.");
+
+        } catch (SQLException e) {
+            System.err.println("Database error: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    public static void saveYouTubeComments(JsonArray comments, String keyword) throws Exception {
+        Properties dbProperties = loadDbProperties();
+        if (dbProperties == null) {
+            return;
+        }
+
+        String dbUrl = dbProperties.getProperty("db.url", "jdbc:postgresql://localhost:5432/aura");
+        String dbUser = dbProperties.getProperty("db.user", "postgres");
+        String dbPassword = dbProperties.getProperty("db.password", "postgres");
+
+        String sql = "INSERT INTO youtube_comments (id, video_id, video_title, text, author, published_at, permalink, keyword) VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING";
+
+        try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            for (JsonElement commentElement : comments) {
+                JsonObject comment = commentElement.getAsJsonObject();
+
+                pstmt.setString(1, comment.get("comment_id").getAsString());
+                pstmt.setString(2, comment.get("video_id").getAsString());
+                pstmt.setString(3, comment.get("video_title").getAsString());
+                pstmt.setString(4, comment.get("text").getAsString());
+                pstmt.setString(5, comment.get("author").getAsString());
+
+                String timestampString = comment.get("published_at").getAsString();
+                Instant instant = Instant.parse(timestampString);
+                pstmt.setTimestamp(6, Timestamp.from(instant));
+                pstmt.setString(7, comment.get("permalink").getAsString());
+                pstmt.setString(8, keyword);
+
+                pstmt.addBatch();
+            }
+
+            pstmt.executeBatch();
+            System.out.println("Successfully saved " + comments.size() + " comments to the database.");
 
         } catch (SQLException e) {
             System.err.println("Database error: " + e.getMessage());

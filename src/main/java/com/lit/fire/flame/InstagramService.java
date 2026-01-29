@@ -117,7 +117,7 @@ public class InstagramService {
     private static void getHashtagMedia(String hashtagId, String query) throws Exception {
         System.out.println("\nRetrieving latest " + numberOfPosts + " posts for '" + query + "'...");
 
-        String fields = "id,caption,media_type,media_url,permalink,timestamp";
+        String fields = "id,caption,media_type,media_url,permalink,timestamp,username,like_count,comments_count";
         String mediaUrl = String.format("%s/%s/recent_media?user_id=%s&fields=%s&limit=%d&access_token=%s",
                 GRAPH_API_URL, hashtagId, INSTAGRAM_BUSINESS_ID, fields, numberOfPosts, ACCESS_TOKEN);
 

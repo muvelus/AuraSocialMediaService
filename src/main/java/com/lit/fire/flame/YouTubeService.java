@@ -5,6 +5,8 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.services.youtube.YouTube;
+import com.google.api.services.youtube.model.CommentThread;
+import com.google.api.services.youtube.model.CommentThreadListResponse;
 import com.google.api.services.youtube.model.SearchListResponse;
 import com.google.api.services.youtube.model.SearchResult;
 
@@ -86,6 +88,48 @@ public class YouTubeService {
         }
 
         // Return an empty list in case of errors or no results.
+        return Collections.emptyList();
+    }
+
+    /**
+     * Fetches the most recent comments for a given YouTube video.
+     *
+     * @param videoId The ID of the video to fetch comments from.
+     * @param maxResults The maximum number of comments to return (1-100).
+     * @return A list of CommentThread objects, or an empty list if no results are found or an error occurs.
+     */
+    public List<CommentThread> getComments(String videoId, long maxResults) {
+        try {
+            System.out.println("Fetching comments for video ID: " + videoId);
+
+            YouTube.CommentThreads.List request = youtubeService.commentThreads()
+                    .list("snippet,replies");
+
+            request.setKey(apiKey);
+            request.setVideoId(videoId);
+            request.setMaxResults(maxResults);
+            request.setOrder("time"); // To get the latest comments
+            request.setTextFormat("plainText");
+
+            CommentThreadListResponse response = request.execute();
+            List<CommentThread> items = response.getItems();
+            if (items != null) {
+                return items;
+            }
+
+        } catch (IOException e) {
+            System.err.println("An IO error occurred while fetching comments: " + e.getMessage());
+            // It can be a 403 error if comments are disabled for the video.
+            if (e.getMessage() != null && e.getMessage().contains("403")) {
+                System.err.println("Comments might be disabled for video: " + videoId);
+            } else {
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
+            System.err.println("An unexpected error occurred while fetching comments: " + e.getMessage());
+            e.printStackTrace();
+        }
+
         return Collections.emptyList();
     }
 }

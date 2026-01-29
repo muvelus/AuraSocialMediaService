@@ -1,73 +1,125 @@
 package com.lit.fire.flame;
 
+import com.google.api.services.youtube.model.Comment;
+import com.google.api.services.youtube.model.CommentSnippet;
+import com.google.api.services.youtube.model.CommentThread;
 import com.google.api.services.youtube.model.SearchResult;
-
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
-import java.io.InputStream;
+import java.util.stream.Collectors;
 
 public class YouTubeMain {
 
-    private static final String PROPERTIES_FILE = "secrets.properties";
+    private static String API_KEY;
+    private static int numberOfVideos;
+    private static int numberOfComments;
 
     public static void main(String[] args) {
-
-        String apiKey = loadApiKey();
-        if (apiKey == null) {
-            System.err.println("Failed to load API key. Please ensure " + PROPERTIES_FILE + " exists and contains YOUTUBE_API_KEY.");
-            return;
-        }
-
         try {
-            // 1. Initialize the service.
-            YouTubeService service = new YouTubeService("MyCoolieSearchApp", apiKey);
+            loadConfig();
+            System.out.println("Initializing YouTube Search...");
+            List<String> keywords = loadKeywords();
 
-            // 2. Define the search parameters.
-            String query = "Coolie Review";
-            long maxVideos = 10;
-
-            // 3. Execute the search.
-            List<SearchResult> searchResults = service.searchVideos(query, maxVideos);
-
-            // 4. Process and display the results.
-            if (searchResults.isEmpty()) {
-                System.out.println("No videos found for the query: '" + query + "'");
-            } else {
-                System.out.println("\n=============================================================");
-                System.out.println(" Top " + searchResults.size() + " results for '" + query + "'");
-                System.out.println("=============================================================\n");
-
-                for (SearchResult result : searchResults) {
-                    System.out.println("  - Title: " + result.getSnippet().getTitle());
-                    System.out.println("    Video ID: " + result.getId().getVideoId());
-                    System.out.println("    Thumbnail: " + result.getSnippet().getThumbnails().getDefault().getUrl());
-                    System.out.println("\n-------------------------------------------------------------\n");
-                }
+            for (String keyword : keywords) {
+                System.out.println("\nProcessing keyword: " + keyword);
+                search(keyword);
             }
 
         } catch (Exception e) {
-            System.err.println("An error occurred during service initialization or execution.");
+            System.err.println("An unrecoverable error occurred during the process.");
             e.printStackTrace();
         }
     }
 
-    /**
-     * Loads the YouTube API key from a properties file in the resources folder.
-     * @return The API key as a String, or null if it cannot be loaded.
-     */
-    private static String loadApiKey() {
-        Properties prop = new Properties();
-        try (InputStream input = YouTubeMain.class.getClassLoader().getResourceAsStream(PROPERTIES_FILE)) {
+    private static void loadConfig() throws Exception {
+        Properties properties = new Properties();
+        try (InputStream input = YouTubeMain.class.getClassLoader().getResourceAsStream("secrets.properties")) {
             if (input == null) {
-                System.err.println("Sorry, unable to find " + PROPERTIES_FILE);
-                return null;
+                System.err.println("Error: Unable to find secrets.properties. Please ensure the file exists and contains the required API credentials.");
+                System.exit(1);
             }
-            prop.load(input);
-            return prop.getProperty("youtube.api_key");
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            return null;
+            properties.load(input);
+        }
+
+        API_KEY = properties.getProperty("youtube.api_key");
+        numberOfVideos = AppProperties.getIntProperty("number.of.videos", 10);
+        numberOfComments = AppProperties.getIntProperty("number.of.comments", 10);
+
+        if (API_KEY == null || API_KEY.equals("YOUR_YOUTUBE_API_KEY")) {
+            System.err.println("Error: Please configure your YouTube API key in the secrets.properties file.");
+            System.exit(1);
+        }
+    }
+
+    private static List<String> loadKeywords() throws Exception {
+        List<String> keywords = new ArrayList<>();
+        try (InputStream input = YouTubeMain.class.getClassLoader().getResourceAsStream("search_queries.txt")) {
+            if (input == null) {
+                System.out.println("Sorry, unable to find search_queries.txt");
+                return keywords;
+            }
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(input))) {
+                keywords = reader.lines()
+                        .map(line -> line.trim().replaceAll("\\s+", "").toLowerCase())
+                        .collect(Collectors.toList());
+            }
+        }
+        return keywords;
+    }
+
+    public static void search(String query) throws Exception {
+        System.out.println("\nRetrieving latest " + numberOfVideos + " videos for '" + query + "'...");
+
+        YouTubeService service = new YouTubeService("YouTubeSearchApp", API_KEY);
+        List<SearchResult> videos = service.searchVideos(query, numberOfVideos);
+
+        if (videos.isEmpty()) {
+            System.out.println("No videos found for the query: '" + query + "'");
+            return;
+        }
+
+        System.out.println("Search successful. Found " + videos.size() + " videos.");
+        JsonArray videoComments = new JsonArray();
+
+        for (SearchResult video : videos) {
+            String videoId = video.getId().getVideoId();
+            System.out.println("\nFetching " + numberOfComments + " comments for video: " + video.getSnippet().getTitle() + " (ID: " + videoId + ")");
+            List<CommentThread> comments = service.getComments(videoId, numberOfComments);
+
+            if (comments.isEmpty()) {
+                System.out.println("No comments found for video ID: " + videoId);
+                continue;
+            }
+
+            for (CommentThread commentThread : comments) {
+                CommentSnippet snippet = commentThread.getSnippet().getTopLevelComment().getSnippet();
+                JsonObject commentJson = new JsonObject();
+                commentJson.addProperty("video_id", videoId);
+                commentJson.addProperty("video_title", video.getSnippet().getTitle());
+                commentJson.addProperty("comment_id", commentThread.getId());
+                commentJson.addProperty("text", snippet.getTextDisplay());
+                commentJson.addProperty("author", snippet.getAuthorDisplayName());
+                commentJson.addProperty("likes_count", snippet.getLikeCount());
+                commentJson.addProperty("reply_count", commentThread.getSnippet().getTotalReplyCount());
+                commentJson.addProperty("published_at", snippet.getPublishedAt().toString());
+                commentJson.addProperty("permalink", "https://www.youtube.com/watch?v=" + videoId + "&lc=" + commentThread.getId());
+                videoComments.add(commentJson);
+            }
+        }
+
+        if (videoComments.size() > 0) {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            System.out.println(gson.toJson(videoComments));
+            DatabaseService.saveYouTubeComments(videoComments, query);
         }
     }
 }
