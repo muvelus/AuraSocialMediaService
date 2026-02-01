@@ -6,6 +6,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.lit.fire.api.SocialMediaScanner;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -25,28 +27,11 @@ import java.util.stream.Collectors;
 /**
  * A client for searching X/Twitter posts.
  */
-public class XService {
+public class XService implements SocialMediaScanner {
 
     private static String ACCESS_TOKEN;
     private static final String API_URL = "https://api.twitter.com/2";
     private static int numberOfPosts;
-
-    public static void main(String[] args) {
-        try {
-            loadConfig();
-            System.out.println("Initializing X Search...");
-            List<String> keywords = loadKeywords();
-
-            for (String keyword : keywords) {
-                System.out.println("\nProcessing keyword: " + keyword);
-                search(keyword);
-            }
-
-        } catch (Exception e) {
-            System.err.println("An unrecoverable error occurred during the process.");
-            e.printStackTrace();
-        }
-    }
 
     private static void loadConfig() throws Exception {
         Properties properties = new Properties();
@@ -149,5 +134,23 @@ public class XService {
         }
         
         throw new RuntimeException("API Request failed. Status: " + response.statusCode() + ", Body: " + response.body());
+    }
+
+    @Override
+    public void scan() {
+        try {
+            loadConfig();
+            System.out.println("Initializing X Search...");
+            List<String> keywords = loadKeywords();
+
+            for (String keyword : keywords) {
+                System.out.println("\nProcessing keyword: " + keyword);
+                search(keyword);
+            }
+
+        } catch (Exception e) {
+            System.err.println("An unrecoverable error occurred during the process.");
+            e.printStackTrace();
+        }
     }
 }

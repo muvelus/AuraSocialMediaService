@@ -3,8 +3,11 @@ package com.lit.fire.flame;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.lit.fire.api.SocialMediaScanner;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -23,7 +26,7 @@ import java.util.Properties;
  * A client for authenticating with the Reddit API using the OAuth 2.0
  * Client Credentials Grant Flow and performing a basic search.
  */
-public class RedditAuthClientWithSearch {
+public class RedditAuthClientWithSearch implements SocialMediaScanner {
 
     private static String CLIENT_ID;
     private static String CLIENT_SECRET;
@@ -61,44 +64,6 @@ public class RedditAuthClientWithSearch {
             System.exit(1);
         }
         USER_AGENT = String.format("java:com.example.redditauth:v1.0 (by /u/%s)", REDDIT_USERNAME);
-    }
-
-    /**3
-     * Main method to demonstrate the authentication and search process.
-     * @param args Command line arguments (not used).
-     */
-    public static void main(String[] args) {
-        String resourceName = "search_queries.txt";
-
-        try {
-            String accessToken = getAccessToken();
-            System.out.println("Successfully retrieved Reddit API Access Token.");
-
-            try (InputStream is = RedditAuthClientWithSearch.class.getClassLoader().getResourceAsStream(resourceName)) {
-                if (is == null) {
-                    System.err.println("Resource not found: " + resourceName);
-                    return;
-                }
-                try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
-                    String searchQuery;
-
-                    while ((searchQuery = br.readLine()) != null) {
-                        searchQuery = searchQuery.trim();
-
-                        if (!searchQuery.isEmpty()) {
-                            System.out.println("Searching for: " + searchQuery);
-                            searchPosts(accessToken, searchQuery);
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                System.err.println("Error reading the file: " + e.getMessage());
-            }
-
-        } catch (Exception e) {
-            System.err.println("An error occurred during the process.");
-            e.printStackTrace();
-        }
     }
 
     /**
@@ -151,8 +116,8 @@ public class RedditAuthClientWithSearch {
      * @param query The search term.
      * @throws Exception if the request fails.
      */
-    public static void searchPosts(String accessToken, String query) throws Exception {
-        System.out.println("\nSearching for the latest 10 posts mentioning '" + query + "'...");
+    public static JsonArray searchPosts(String accessToken, String query) throws Exception {
+        System.out.println("\nSearching for the latest 50 posts mentioning '" + query + "'...");
 
         String encodedQuery = URLEncoder.encode(query, StandardCharsets.UTF_8);
 
@@ -175,11 +140,67 @@ public class RedditAuthClientWithSearch {
         System.out.println("Search successful. Found posts:");
 
         String responseBody = response.body();
+        JsonArray posts = new JsonArray();
 
         if (responseBody != null && !responseBody.isEmpty()) {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            JsonElement je = JsonParser.parseString(responseBody);
-            System.out.println(gson.toJson(je));
+            JsonObject root = JsonParser.parseString(responseBody).getAsJsonObject();
+            JsonObject data = root.getAsJsonObject("data");
+            JsonArray children = data.getAsJsonArray("children");
+
+            for (JsonElement childElement : children) {
+                JsonObject postData = childElement.getAsJsonObject().getAsJsonObject("data");
+                
+                JsonObject postToSave = new JsonObject();
+                postToSave.add("id", postData.get("id"));
+                postToSave.add("title", postData.get("title"));
+                postToSave.add("text", postData.get("selftext"));
+                postToSave.add("created_utc", postData.get("created_utc"));
+                postToSave.add("permalink", postData.get("permalink"));
+                postToSave.add("author", postData.get("author"));
+                postToSave.add("score", postData.get("score"));
+                postToSave.add("num_comments", postData.get("num_comments"));
+
+                posts.add(postToSave);
+            }
+        }
+        return posts;
+    }
+
+    @Override
+    public void scan() {
+        String resourceName = "search_queries.txt";
+
+        try {
+            String accessToken = getAccessToken();
+            System.out.println("Successfully retrieved Reddit API Access Token.");
+
+            try (InputStream is = RedditAuthClientWithSearch.class.getClassLoader().getResourceAsStream(resourceName)) {
+                if (is == null) {
+                    System.err.println("Resource not found: " + resourceName);
+                    return;
+                }
+                try (BufferedReader br = new BufferedReader(new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                    String searchQuery;
+
+                    while ((searchQuery = br.readLine()) != null) {
+                        searchQuery = searchQuery.trim();
+
+                        if (!searchQuery.isEmpty()) {
+                            System.out.println("Searching for: " + searchQuery);
+                            JsonArray posts = searchPosts(accessToken, searchQuery);
+                            if (posts.size() > 0) {
+                                DatabaseService.saveRedditPosts(posts, searchQuery);
+                            }
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                System.err.println("Error reading the file: " + e.getMessage());
+            }
+
+        } catch (Exception e) {
+            System.err.println("An error occurred during the process.");
+            e.printStackTrace();
         }
     }
 

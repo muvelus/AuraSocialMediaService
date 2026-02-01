@@ -1,6 +1,5 @@
 package com.lit.fire.flame;
 
-import com.google.api.services.youtube.model.Comment;
 import com.google.api.services.youtube.model.CommentSnippet;
 import com.google.api.services.youtube.model.CommentThread;
 import com.google.api.services.youtube.model.SearchResult;
@@ -8,8 +7,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.lit.fire.api.SocialMediaScanner;
+
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
@@ -17,28 +17,11 @@ import java.util.List;
 import java.util.Properties;
 import java.util.stream.Collectors;
 
-public class YouTubeMain {
+public class YouTubeMain implements SocialMediaScanner {
 
     private static String API_KEY;
     private static int numberOfVideos;
     private static int numberOfComments;
-
-    public static void main(String[] args) {
-        try {
-            loadConfig();
-            System.out.println("Initializing YouTube Search...");
-            List<String> keywords = loadKeywords();
-
-            for (String keyword : keywords) {
-                System.out.println("\nProcessing keyword: " + keyword);
-                search(keyword);
-            }
-
-        } catch (Exception e) {
-            System.err.println("An unrecoverable error occurred during the process.");
-            e.printStackTrace();
-        }
-    }
 
     private static void loadConfig() throws Exception {
         Properties properties = new Properties();
@@ -117,9 +100,25 @@ public class YouTubeMain {
         }
 
         if (videoComments.size() > 0) {
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            System.out.println(gson.toJson(videoComments));
             DatabaseService.saveYouTubeComments(videoComments, query);
+        }
+    }
+
+    @Override
+    public void scan() {
+        try {
+            loadConfig();
+            System.out.println("Initializing YouTube Search...");
+            List<String> keywords = loadKeywords();
+
+            for (String keyword : keywords) {
+                System.out.println("\nProcessing keyword: " + keyword);
+                search(keyword);
+            }
+
+        } catch (Exception e) {
+            System.err.println("An unrecoverable error occurred during the process.");
+            e.printStackTrace();
         }
     }
 }

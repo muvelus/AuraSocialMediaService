@@ -6,6 +6,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.lit.fire.api.SocialMediaScanner;
+
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -24,29 +26,12 @@ import java.util.stream.Collectors;
  * A client for searching Instagram posts using the Instagram Graph API.
  * Requires an Instagram Business Account and a User Access Token.
  */
-public class InstagramService {
+public class InstagramService implements SocialMediaScanner {
 
     private static String ACCESS_TOKEN;
     private static String INSTAGRAM_BUSINESS_ID;
     private static final String GRAPH_API_URL = "https://graph.facebook.com/v24.0";
     private static int numberOfPosts;
-
-    public static void main(String[] args) {
-        try {
-            loadConfig();
-            System.out.println("Initializing Instagram Search...");
-            List<String> keywords = loadKeywords();
-
-            for (String keyword : keywords) {
-                System.out.println("\nProcessing keyword: " + keyword);
-                search(keyword);
-            }
-
-        } catch (Exception e) {
-            System.err.println("An unrecoverable error occurred during the process.");
-            e.printStackTrace();
-        }
-    }
 
     private static void loadConfig() throws Exception {
         Properties properties = new Properties();
@@ -161,5 +146,23 @@ public class InstagramService {
         }
 
         throw new RuntimeException("API Request failed. Status: " + response.statusCode() + ", Body: " + response.body());
+    }
+
+    @Override
+    public void scan() {
+        try {
+            loadConfig();
+            System.out.println("Initializing Instagram Search...");
+            List<String> keywords = loadKeywords();
+
+            for (String keyword : keywords) {
+                System.out.println("\nProcessing keyword: " + keyword);
+                search(keyword);
+            }
+
+        } catch (Exception e) {
+            System.err.println("An unrecoverable error occurred during the process.");
+            e.printStackTrace();
+        }
     }
 }

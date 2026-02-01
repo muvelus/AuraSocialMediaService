@@ -157,4 +157,46 @@ public class DatabaseService {
             e.printStackTrace();
         }
     }
+
+    public static void saveRedditPosts(JsonArray posts, String keyword) throws Exception {
+        Properties dbProperties = loadDbProperties();
+        if (dbProperties == null) {
+            return;
+        }
+
+        String dbUrl = dbProperties.getProperty("db.url", "jdbc:postgresql://localhost:5432/aura");
+        String dbUser = dbProperties.getProperty("db.user", "postgres");
+        String dbPassword = dbProperties.getProperty("db.password", "postgres");
+
+        String sql = "INSERT INTO reddit_posts (id, title, text, created_at, keyword, permalink, author, score, num_comments) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) ON CONFLICT (id) DO NOTHING";
+
+        try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            for (JsonElement postElement : posts) {
+                JsonObject post = postElement.getAsJsonObject();
+
+                pstmt.setString(1, post.get("id").getAsString());
+                pstmt.setString(2, post.has("title") ? post.get("title").getAsString() : null);
+                pstmt.setString(3, post.has("text") ? post.get("text").getAsString() : null);
+                
+                long createdUtc = post.get("created_utc").getAsLong();
+                pstmt.setTimestamp(4, Timestamp.from(Instant.ofEpochSecond(createdUtc)));
+                pstmt.setString(5, keyword);
+                pstmt.setString(6, post.has("permalink") ? post.get("permalink").getAsString() : null);
+                pstmt.setString(7, post.has("author") ? post.get("author").getAsString() : null);
+                pstmt.setInt(8, post.has("score") ? post.get("score").getAsInt() : 0);
+                pstmt.setInt(9, post.has("num_comments") ? post.get("num_comments").getAsInt() : 0);
+
+                pstmt.addBatch();
+            }
+
+            pstmt.executeBatch();
+            System.out.println("Successfully saved " + posts.size() + " Reddit posts to the database.");
+
+        } catch (SQLException e) {
+            System.err.println("Database error: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
 }
