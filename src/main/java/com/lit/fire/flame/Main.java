@@ -6,7 +6,7 @@ import java.util.List;
 
 public class Main {
 
-    private static class ScannableService {
+    private static class ScannableService implements Runnable {
         private final SocialMediaScanner scanner;
         private final String name;
         private long nextScanTime;
@@ -17,8 +17,18 @@ public class Main {
             this.nextScanTime = System.currentTimeMillis();
         }
 
-        public void tryScan() {
-            if (System.currentTimeMillis() >= nextScanTime) {
+        @Override
+        public void run() {
+            while (true) {
+                long sleepTime = nextScanTime - System.currentTimeMillis();
+                if (sleepTime > 0) {
+                    try {
+                        Thread.sleep(sleepTime);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+
                 try {
                     System.out.println("Scanning " + name + "...");
                     scanner.scan();
@@ -40,16 +50,8 @@ public class Main {
         services.add(new ScannableService(new XService(), "X"));
         services.add(new ScannableService(new YouTubeMain(), "YouTube"));
 
-        while (true) {
-            for (ScannableService service : services) {
-                service.tryScan();
-            }
-
-            try {
-                Thread.sleep(60 * 1000); // Check every minute
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+        for (ScannableService service : services) {
+            new Thread(service).start();
         }
     }
 }
