@@ -20,6 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -158,6 +159,9 @@ public class InstagramService implements SocialMediaScanner {
             for (String keyword : keywords) {
                 System.out.println("\nProcessing keyword: " + keyword);
                 search(keyword);
+                long delay = ThreadLocalRandom.current().nextLong(300000, 600001);
+                System.out.println(System.currentTimeMillis() + ": Waiting for " + (delay / 60000) + " minutes before the next keyword...");
+                Thread.sleep(delay);
             }
 
         } catch (Exception e) {

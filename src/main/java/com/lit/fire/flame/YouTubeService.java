@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * A reusable service class for interacting with the YouTube Data API v3.
@@ -70,6 +71,9 @@ public class YouTubeService {
             // This reduces payload size and processing time.
             searchRequest.setFields("items(id/videoId,snippet/title,snippet/thumbnails/default/url)");
 
+            long delay = ThreadLocalRandom.current().nextLong(300000, 600001);
+            System.out.println(System.currentTimeMillis() + ": Waiting for " + (delay / 60000) + " minutes before the next keyword...");
+            Thread.sleep(delay);
             // Execute the request and get the response.
             SearchListResponse searchResponse = searchRequest.execute();
 
@@ -111,6 +115,9 @@ public class YouTubeService {
             request.setOrder("time"); // To get the latest comments
             request.setTextFormat("plainText");
 
+            long delay = ThreadLocalRandom.current().nextLong(300000, 600001);
+            System.out.println(System.currentTimeMillis() + ": Waiting for " + (delay / 60000) + " minutes before the next keyword...");
+            Thread.sleep(delay);
             CommentThreadListResponse response = request.execute();
             List<CommentThread> items = response.getItems();
             if (items != null) {

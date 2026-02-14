@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 /**
@@ -146,6 +147,9 @@ public class XService implements SocialMediaScanner {
             for (String keyword : keywords) {
                 System.out.println("\nProcessing keyword: " + keyword);
                 search(keyword);
+                long delay = ThreadLocalRandom.current().nextLong(300000, 600001);
+                System.out.println(System.currentTimeMillis() + ": Waiting for " + (delay / 60000) + " minutes before the next keyword...");
+                Thread.sleep(delay);
             }
 
         } catch (Exception e) {

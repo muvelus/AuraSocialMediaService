@@ -21,6 +21,7 @@ import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Properties;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * A client for authenticating with the Reddit API using the OAuth 2.0
@@ -191,6 +192,9 @@ public class RedditAuthClientWithSearch implements SocialMediaScanner {
                             if (posts.size() > 0) {
                                 DatabaseService.saveRedditPosts(posts, searchQuery);
                             }
+                            long delay = ThreadLocalRandom.current().nextLong(300000, 600001);
+                            System.out.println(System.currentTimeMillis() + ": Waiting for " + (delay / 60000) + " minutes before the next keyword...");
+                            Thread.sleep(delay);
                         }
                     }
                 }
