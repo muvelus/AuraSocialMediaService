@@ -88,12 +88,28 @@ public class DatabaseService {
 
         try (Connection conn = DriverManager.getConnection(dbUrl, dbUser, dbPassword);
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
+            int savedPosts = 0;
             for (JsonElement postElement : posts) {
                 JsonObject post = postElement.getAsJsonObject();
 
+                String text = post.has("text") ? post.get("text").getAsString() : null;
+                if (text != null && keyword != null && !keyword.isEmpty()) {
+                    java.util.regex.Pattern pattern = java.util.regex.Pattern.compile("@[\\w_]+");
+                    java.util.regex.Matcher matcher = pattern.matcher(text);
+                    boolean foundBadHandle = false;
+                    while (matcher.find()) {
+                        if (matcher.group().toLowerCase().contains(keyword.toLowerCase())) {
+                            foundBadHandle = true;
+                            break;
+                        }
+                    }
+                    if (foundBadHandle) {
+                        continue; // Skip this post
+                    }
+                }
+
                 pstmt.setString(1, post.get("id").getAsString());
-                pstmt.setString(2, post.has("text") ? post.get("text").getAsString() : null);
+                pstmt.setString(2, text);
                 
                 String timestampString = post.get("created_at").getAsString();
                 Instant instant = Instant.parse(timestampString);
@@ -105,10 +121,11 @@ public class DatabaseService {
                 pstmt.setInt(8, post.has("comment_count") ? post.get("comment_count").getAsInt() : 0);
 
                 pstmt.addBatch();
+                savedPosts++;
             }
 
             pstmt.executeBatch();
-            System.out.println("Successfully saved " + posts.size() + " posts to the database.");
+            System.out.println("Successfully saved " + savedPosts + " posts to the database.");
 
         } catch (SQLException e) {
             System.err.println("Database error: " + e.getMessage());
