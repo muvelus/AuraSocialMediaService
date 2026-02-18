@@ -10,3 +10,5 @@ How to calculate sentiment score for a movie?
 Score = (Percentage Positive) * (Average Positive Score) / 100
 
 (Percentage Positive) = (Total number of Positive Posts)/ (Total number of Posts) * 100
+
+Read Instagram and Reddit search using Apify or RapidApi
